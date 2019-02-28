@@ -1,0 +1,72 @@
+version: '3'
+services:
+  mftf:
+    image: magestore/mftf:2.3.0-apache-php7.2.13
+    volumes:
+      - ./app/code/Magestore:/var/www/html/app/code/Magestore      
+      # - ./app/pub/apps:/var/www/html/pub/apps
+      - ./app/allure/allure-results:/allure-results
+      - ./app/.composer:/var/www/.composer
+      # mount to fixbug
+      - ./vendor/magento/module-catalog/etc/di.xml:/var/www/html/vendor/magento/module-catalog/etc/di.xml
+    environment:
+      BASE_URL: https://localhost.com/
+      MAGENTO_DEV_MODE: developer
+    networks:
+      webnet:
+        aliases:
+          - localhost.com
+
+  functional:
+    image: magestore/mftf:2.2.4
+    volumes:
+      - ./app/code:/var/www/html/app/code
+      - ./app/allure/allure-results:/allure-results
+      - ./app/.composer:/var/www/.composer
+    environment:
+      BASE_URL: https://localhost.com/
+      MAGENTO_DEV_MODE: developer
+    networks:
+      webnet:
+        aliases:
+          - localhost2.com
+    entrypoint:
+      - apache2-foreground
+
+  selenium:
+    image: magestore/mftf-selenium-chrome
+    ports:
+      - 5900-5901:5900
+    volumes:
+      - /dev/shm:/dev/shm
+    environment:
+      START_XVFB: "false"
+    networks:
+      - webnet
+
+  mailhog:
+    image: mailhog/mailhog
+    networks:
+      - webnet
+
+  db:
+    image: magestore/mftf-db:percona-5.7
+    volumes:
+      - ./db/conf.d:/etc/my.cnf.d
+    environment:
+      MYSQL_ROOT_PASSWORD: magento
+      MYSQL_DATABASE: magento
+    networks:
+      - webnet
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: magento
+    networks:
+      - webnet
+
+networks:
+  webnet:
